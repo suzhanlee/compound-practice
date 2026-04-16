@@ -1,0 +1,44 @@
+{
+  "tasks": [
+    {
+      "action": "카테고리별 메뉴 조회 필터링 수정",
+      "verification": "pytest tests/test_use_cases.py -k 'menu' -v",
+      "step": [
+        "GetMenuUseCase.execute 시그니처를 `(self, category: Optional[str] = None, available_only: bool = True)`로 유지하되, available_only와 category를 동시에 적용하도록 분기 로직 수정 (현재는 available_only=True이면 category가 무시됨)",
+        "MenuItemRepository 인터페이스에 `find_by_category_and_available(category: MenuCategory) -> List[MenuItem]` 추상 메서드 추가",
+        "InMemoryMenuItemRepository에 해당 메서드를 구현: available=True인 항목만 category 필터로 반환",
+        "GetMenuUseCase.execute에서 available_only=True + category 조합 처리 분기 추가",
+        "tests/test_use_cases.py에 카테고리+available 동시 필터링 케이스 테스트 추가"
+      ]
+    },
+    {
+      "action": "주문 항목 수량 최대 10개 제한 구현",
+      "verification": "pytest tests/test_order.py tests/test_domain_service.py -k 'quantity' -v",
+      "step": [
+        "OrderItem.__post_init__에 `if self.quantity > 10: raise ValueError('수량은 최대 10개입니다.')` 검증 추가",
+        "OrderDomainService.create_order_item_from_menu에 `if quantity > 10: raise ValueError('수량은 최대 10개입니다.')` 검증 추가",
+        "tests/test_order.py에 quantity=10(성공), quantity=11(실패) 경계값 테스트 추가",
+        "tests/test_domain_service.py에 create_order_item_from_menu quantity=0, quantity=11 예외 케이스 테스트 추가"
+      ]
+    },
+    {
+      "action": "결제 수단(카드/현금) 선택 기능 검증",
+      "verification": "pytest tests/test_use_cases.py -k 'payment' -v",
+      "step": [
+        "ProcessPaymentUseCase.execute의 method 파라미터가 PaymentMethod.CARD('카드'), PaymentMethod.CASH('현금') 값만 허용하는지 확인; MOBILE 등 불필요한 값 전달 시 PaymentMethod(method) 생성에서 ValueError 발생 여부 확인",
+        "tests/test_use_cases.py에 카드 결제 성공, 현금 결제 성공, 잘못된 결제수단 ValueError 테스트 케이스 추가"
+      ]
+    },
+    {
+      "action": "결제 금액과 주문 총액 불일치 시 결제 거부 구현",
+      "verification": "pytest tests/test_use_cases.py tests/test_domain_service.py -k 'payment_amount' -v",
+      "step": [
+        "ProcessPaymentUseCase.execute 시그니처에 `amount: Decimal` 파라미터 추가",
+        "OrderDomainService.validate_order_for_payment(order, amount: Money) 시그니처 확장 후 `if order.total_amount.amount != amount.amount: raise ValueError('결제 금액이 주문 총액과 일치하지 않습니다.')` 검증 추가",
+        "ProcessPaymentUseCase.execute에서 `self._domain_service.validate_order_for_payment(order, Money(amount))` 호출로 수정",
+        "tests/test_use_cases.py에 일치 금액 결제 성공, 불일치 금액 결제 거부(ValueError) 테스트 추가",
+        "tests/test_domain_service.py에 validate_order_for_payment 금액 불일치 케이스 단위 테스트 추가"
+      ]
+    }
+  ]
+}
