@@ -13,7 +13,7 @@ class OrderStatus(Enum):
     CANCELLED = "취소됨"
 
 
-@dataclass(frozen=True)
+@dataclass
 class OrderItem:
     menu_item_id: MenuItemId
     name: str
@@ -23,6 +23,19 @@ class OrderItem:
     def __post_init__(self):
         if self.quantity <= 0:
             raise ValueError("수량은 1 이상이어야 합니다.")
+        if self.quantity > 10:
+            raise ValueError("수량은 최대 10개입니다.")
+
+    def increase_quantity(self, delta: int):
+        new_qty = self.quantity + delta
+        if new_qty > 10:
+            raise ValueError("수량은 최대 10개입니다.")
+        object.__setattr__(self, 'quantity', new_qty)
+
+    def set_quantity(self, new_quantity: int):
+        if new_quantity < 1 or new_quantity > 10:
+            raise ValueError("수량은 1~10 사이여야 합니다.")
+        object.__setattr__(self, 'quantity', new_quantity)
 
     @property
     def subtotal(self) -> Money:
@@ -42,15 +55,30 @@ class Order:
     def add_item(self, item: OrderItem):
         if self.status != OrderStatus.PENDING:
             raise ValueError("대기중 상태에서만 주문 항목을 추가할 수 있습니다.")
-        for existing in self.items:
-            if existing.menu_item_id == item.menu_item_id:
-                raise ValueError(f"이미 추가된 메뉴입니다: {item.name}. 수량 변경을 사용하세요.")
-        self.items.append(item)
+        existing = next(
+            (i for i in self.items if i.menu_item_id == item.menu_item_id),
+            None
+        )
+        if existing:
+            existing.increase_quantity(item.quantity)
+        else:
+            self.items.append(item)
 
     def remove_item(self, menu_item_id: MenuItemId):
         if self.status != OrderStatus.PENDING:
             raise ValueError("대기중 상태에서만 주문 항목을 제거할 수 있습니다.")
         self.items = [i for i in self.items if i.menu_item_id != menu_item_id]
+
+    def update_item_quantity(self, menu_item_id: MenuItemId, new_quantity: int):
+        if self.status != OrderStatus.PENDING:
+            raise ValueError("대기중 상태에서만 수량을 변경할 수 있습니다.")
+        item = next(
+            (i for i in self.items if i.menu_item_id == menu_item_id),
+            None
+        )
+        if not item:
+            raise ValueError(f"항목을 찾을 수 없습니다: {menu_item_id}")
+        item.set_quantity(new_quantity)
 
     def confirm(self):
         if self.status != OrderStatus.PENDING:
