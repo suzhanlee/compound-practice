@@ -7,6 +7,7 @@ allowed-tools:
   - Glob
   - Grep
   - Read
+  - Write
 ---
 
 # mini-specify — Plan with Past Learnings
@@ -16,6 +17,8 @@ allowed-tools:
 goal을 받아 ADR과 과거 learning을 검색하고, 관련 결정·rule을 반영한 태스크 목록을 출력한다.
 
 인자 형식: `<goal> [adr:<adr-file-path>]`
+
+생성된 태스크 목록은 `.dev/requirements/requirements.json` 에도 저장된다.
 
 ## Workflow
 
@@ -85,8 +88,38 @@ Tasks:
 ...
 ```
 
+### Step 5: Write Requirements JSON
+
+goal 문자열에서 slug를 생성한다:
+- 공백을 하이픈으로 치환
+- 영문 소문자, 숫자, 하이픈만 허용 (한글은 영어로 변환하거나 제거)
+- 최대 40자
+
+`.dev/requirements/` 디렉토리가 없으면 먼저 생성:
+```bash
+mkdir -p .dev/requirements
+```
+
+Step 4에서 생성한 태스크 목록을 아래 포맷으로 `.dev/requirements/requirements.json`에 Write한다:
+
+```json
+{
+  "requirements": [
+    { "index": 1, "content": "태스크 설명" },
+    { "index": 2, "content": "태스크 설명" }
+  ]
+}
+```
+
+Write 완료 후 출력:
+```
+📄 requirements.json 저장: .dev/requirements/requirements.json (N개)
+```
+
 ## Rules
 
 - 태스크는 3개 이하로 유지한다 (최소 단위 원칙).
 - goal이 이미 단일 작업이면 태스크 1개로 출력한다.
 - Past learning이 없으면 `⚠️` 블록 없이 바로 태스크 목록만 출력한다.
+- Step 5에서 생성하는 requirements.json은 taskify가 읽을 수 있도록 반드시 유효한 JSON이어야 한다.
+- 파일이 이미 존재하면 덮어쓴다 (이전 session의 파일이 남아있을 수 있으므로).

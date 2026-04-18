@@ -2,7 +2,7 @@
 name: mini-harness
 description: |
   Use when the user says "/mini-harness [goal]".
-  Main orchestrator: drives the full learning loop — specify → execute → compound.
+  Main orchestrator: drives the full learning loop — specify → taskify → execute → compound.
   Searches past learnings before planning, records friction during execution,
   and promotes session learnings to permanent storage at the end.
 allowed-tools:
@@ -43,16 +43,20 @@ allowed-tools:
 - 반환된 태스크 목록을 출력한다.
 - Past Learning이 있으면 해당 내용을 사용자에게 강조한다.
 
-### Phase 2: Execute Loop
+### Phase 1.5: Taskify
 
-태스크 목록을 순서대로 처리한다. 각 태스크마다:
+`Skill("taskify")` 를 호출한다.
 
-1. 태스크 번호와 내용을 출력한다:
-   ```
-   ── Task N: {task description} ──
-   ```
-2. `Skill("mini-execute", args="<task description>")` 를 호출한다.
-3. 완료 확인 후 다음 태스크로 이동한다.
+- mini-specify가 저장한 `.dev/requirements/requirements.json` 을 읽어 `.dev/task/spec.json` 을 생성한다.
+- taskify 완료 보고를 확인한 후 다음 Phase로 이동한다.
+- spec.json이 생성되지 않으면 즉시 오류를 보고하고 중단한다.
+
+### Phase 2: Execute
+
+`Skill("mini-execute")` 를 호출한다 (인자 없음).
+
+- mini-execute가 `.dev/task/spec.json` 을 읽어 모든 태스크를 내부적으로 순서대로 처리한다.
+- 완료 후 다음 Phase로 이동한다.
 
 ### Phase 3: Compound
 
@@ -66,7 +70,7 @@ allowed-tools:
 ```
 ✓ mini-harness 완료
   - ADR: {참조한 ADR 파일명 or "없음"}
-  - Tasks: N개 실행
+  - Spec: .dev/task/spec.json
   - Learnings: {생성된 파일 목록 or "기록 없음"}
 ```
 
@@ -74,6 +78,7 @@ allowed-tools:
 
 - Phase 0: Council을 먼저 실행하여 goal 관련 ADR을 생성한다.
 - Phase 1: Council이 생성한 ADR 파일을 mini-specify에 전달한다.
+- Phase 1.5: mini-specify 완료 후 즉시 taskify를 호출한다. spec.json 없이 execute를 실행하지 않는다.
 - 태스크를 건너뛰지 않는다. 모든 태스크가 끝난 후에만 compound를 실행한다.
-- execute 중 오류가 발생해도 다음 태스크를 계속 시도한다. 오류 내용은 보고서에 포함한다.
+- execute 중 오류가 발생해도 mini-execute가 내부적으로 처리한다. 오류 내용은 최종 보고서에 포함한다.
 - Stop hook이 compound 없는 종료를 차단한다. 세션을 닫기 전에 반드시 compound가 실행되어야 한다.

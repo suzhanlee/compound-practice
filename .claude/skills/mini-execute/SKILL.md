@@ -1,9 +1,9 @@
 ---
 name: mini-execute
 description: |
-  Use when the user says "/mini-execute [task]".
-  Implements the task, then records friction to session/learnings.json
-  only when a clear, reusable rule can be derived.
+  Use when the user says "/mini-execute".
+  Reads .dev/task/spec.json, iterates over each task, implements each one,
+  and records friction to session/learnings.json only when a clear, reusable rule can be derived.
 allowed-tools:
   - Read
   - Write
@@ -17,14 +17,43 @@ allowed-tools:
 
 ## Purpose
 
-태스크를 구현하고, 마찰이 발생한 경우 재사용 가능한 rule을 session에 기록한다.
+`.dev/task/spec.json` 의 모든 태스크를 순서대로 구현하고, 마찰이 발생한 경우 재사용 가능한 rule을 session에 기록한다.
 **rule이 없으면 기록하지 않는다** — 이것이 가장 중요한 필터.
 
 ## Workflow
 
-### Step 1: Implement
+### Step 1: Load Spec and Iterate
 
-태스크를 구현한다. 일반적인 개발 작업과 동일하게 수행한다.
+**1-1. spec.json 존재 확인**
+
+```bash
+test -f .dev/task/spec.json && echo "exists" || echo "NOT FOUND"
+```
+
+파일이 없으면 즉시 중단하고 오류를 보고한다:
+```
+✗ .dev/task/spec.json 파일이 없습니다. taskify를 먼저 실행하세요.
+```
+
+**1-2. 태스크 목록 로드**
+
+`.dev/task/spec.json` 을 Read하여 `tasks` 배열을 파악한다.
+
+tasks가 비어있으면 "태스크가 없습니다" 출력 후 종료한다.
+
+**1-3. 태스크 루프**
+
+각 태스크를 순서대로 처리한다. 각 태스크마다:
+
+1. 태스크 번호와 action을 출력한다:
+   ```
+   ── Task N: {action} ──
+   ```
+2. `task.step` 목록을 순서대로 구현한다.
+3. `task.verification` 명령어를 Bash로 실행하여 검증한다.
+4. Step 2(Friction Self-Assessment) ~ Step 4(Append to Session)를 각 태스크마다 수행한다.
+
+오류가 발생해도 다음 태스크를 계속 시도한다. 오류 내용은 Completion Report에 포함한다.
 
 ### Step 2: Friction Self-Assessment
 
@@ -79,16 +108,26 @@ mkdir -p .mini-harness/session
 
 파일이 없으면 새 배열 `[{...}]` 로 생성한다.
 
-### Step 5: Completion Report
+### Step 5: Completion Report (태스크별)
 
 ```
-✓ Task 완료: {task description}
+✓ Task N 완료: {action}
+  검증: {verification 명령어 결과}
   Friction recorded: {rule 첫 문장} (해당 시)
   Friction recorded: 없음 (해당 없을 시)
 ```
 
+모든 태스크 완료 후 최종 요약:
+```
+── mini-execute 완료 ──
+  총 태스크: N개
+  성공: N개 / 실패: N개
+```
+
 ## Rules
 
+- Step 1에서 spec.json이 없으면 즉시 중단한다. 빈 태스크로 구현하지 않는다.
+- 태스크를 건너뛰지 않는다. 오류가 발생한 태스크도 보고서에 포함하고 다음 태스크로 진행한다.
 - 구현 중 막히더라도 rule 없이 기록하지 않는다. 기록의 가치는 재사용 가능한 rule에 있다.
 - tags는 mini-specify가 grep할 수 있도록 검색 가능한 키워드로 작성한다.
 - session/learnings.json 조작 시 유효한 JSON을 유지한다 (append 전후 검증).
