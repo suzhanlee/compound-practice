@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -54,7 +57,15 @@
       }
     ]
   },
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  "enabledPlugins": {
+    "harness-session@harness": true
+  },
+  "extraKnownMarketplaces": {
+    "harness": {
+      "source": {
+        "source": "directory",
+        "path": "../../PycharmProjects/harness"
+      }
+    }
   }
 }
