@@ -2,9 +2,8 @@
 name: mini-harness
 description: |
   Use when the user says "/mini-harness [goal]".
-  Main orchestrator: drives the full learning loop — specify → taskify → execute → compound.
-  Searches past learnings before planning, records friction during execution,
-  and promotes session learnings to permanent storage at the end.
+  Hook-based orchestrator: triggers the full learning loop via Stop hooks.
+  Chain: council → mini-specify → taskify → mini-execute → mini-compound.
 allowed-tools:
   - Glob
   - Grep
@@ -15,70 +14,52 @@ allowed-tools:
   - Skill
 ---
 
-# mini-harness — Main Orchestrator
+# mini-harness — Hook-Based Orchestrator
 
 ## Purpose
 
-`/mini-harness [goal]` 한 번으로 전체 피드백 루프를 구동한다:
-1. Council 실행 (goal 관련 결정 도출)
-2. 과거 learning 검색 후 태스크 계획
-3. 태스크 구현 (마찰 기록)
-4. Session learning → 영구 파일 승격
+`/mini-harness [goal]` 한 번으로 전체 피드백 루프를 자동 실행한다.
+실제 오케스트레이션은 Stop 훅(`scripts/mini-stop.sh`)이 담당한다.
+상태는 `.claude/state/state.json` 에서 관리된다.
 
-## Workflow
+## 오케스트레이션 체인 순서
 
-### Phase 0: Council 실행
+1. **council** — goal 관련 결정 도출, ADR 생성
+2. **mini-specify** — goal + ADR로 요구사항 생성, `.dev/requirements/requirements.json` 저장
+3. **taskify** — requirements.json 읽기, 태스크 분해, `.dev/task/spec.json` 저장
+4. **mini-execute** — spec.json 읽기, 모든 태스크 순서 실행
+5. **mini-compound** — session learnings → 영구 파일 승격
 
-`Skill("council", args="<goal>")` 를 호출하여 structured multi-panel debate를 수행한다.
+## 동작 방식
 
-결과로 `.dev/adr/YYYY-MM-DD-{topic-slug}.md` ADR 파일이 생성된다.
+- 이 스킬은 체인 시작점 역할만 함 (goal을 state.json에 저장)
+- 각 스킬 종료 후 Stop 훅이 발동 → 다음 스킬을 자동 트리거
+- PreToolUse 훅: Skill 호출 전 state.json 갱신
+- PostToolUse 훅: mini-harness 완료 후 status 확인
+- Stop 훅: 현재 skill_name에 따라 다음 스킬 결정
 
-생성된 ADR 파일의 경로를 추출하여 다음 Phase에 전달한다.
+## 상태 전이
 
-### Phase 1: Specify
-
-`Skill("mini-specify", args="<goal> adr:<phase-0-adr-path>")` 를 호출한다.
-
-- Phase 0에서 생성된 ADR 파일 경로를 `adr:` 인자로 전달한다.
-- 반환된 태스크 목록을 출력한다.
-- Past Learning이 있으면 해당 내용을 사용자에게 강조한다.
-
-### Phase 1.5: Taskify
-
-`Skill("taskify")` 를 호출한다.
-
-- mini-specify가 저장한 `.dev/requirements/requirements.json` 을 읽어 `.dev/task/spec.json` 을 생성한다.
-- taskify 완료 보고를 확인한 후 다음 Phase로 이동한다.
-- spec.json이 생성되지 않으면 즉시 오류를 보고하고 중단한다.
-
-### Phase 2: Execute
-
-`Skill("mini-execute")` 를 호출한다 (인자 없음).
-
-- mini-execute가 `.dev/task/spec.json` 을 읽어 모든 태스크를 내부적으로 순서대로 처리한다.
-- 완료 후 다음 Phase로 이동한다.
-
-### Phase 3: Compound
-
-모든 태스크 완료 후:
-
-`Skill("mini-compound")` 를 호출한다.
-
-### Phase 4: Report
-
-완료 보고를 출력한다:
 ```
-✓ mini-harness 완료
-  - ADR: {참조한 ADR 파일명 or "없음"}
-  - Spec: .dev/task/spec.json
-  - Learnings: {생성된 파일 목록 or "기록 없음"}
+state.json: { skill_name, status: processing|end, goal, timestamp }
+
+mini-harness (processing)
+  → Stop hook: status=end → trigger council
+council (processing)
+  → Stop hook: status=end → trigger mini-specify
+mini-specify (processing)
+  → Stop hook: status=end → trigger taskify
+taskify (processing)
+  → Stop hook: status=end → trigger mini-execute
+mini-execute (processing)
+  → Stop hook: status=end → trigger mini-compound
+mini-compound (processing)
+  → Stop hook: status=end → delete state.json → approve exit
 ```
 
 ## Rules
 
-- Phase 0: Council을 먼저 실행하여 goal 관련 ADR을 생성한다.
-- Phase 1: Council이 생성한 ADR 파일을 mini-specify에 전달한다.
-- Phase 1.5: mini-specify 완료 후 즉시 taskify를 호출한다. spec.json 없이 execute를 실행하지 않는다.
-- 태스크를 건너뛰지 않는다. 모든 태스크가 끝난 후에만 compound를 실행한다.
-- execute 중 오류가 발생해도 mini-execute가 내부적으로 처리한다. 오류 내용은 최종 보고서에 포함한다.
-- Stop hook이 compound 없는 종료를 차단한다. 세션을 닫기 전에 반드시 compound가 실행되어야 한다.
+- PreToolUse 훅이 Skill 호출 전 state.json을 갱신한다.
+- Stop 훅이 skill_name을 읽어 다음 스킬을 결정한다.
+- 모든 스킬이 정상 완료되면 state.json이 자동 삭제되어 세션 종료 가능.
+- state.json 존재 시에만 orchestration 모드; 없으면 기존 compound guard 로직 작동.
