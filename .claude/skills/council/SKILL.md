@@ -177,4 +177,4 @@ Write 도구로 ADR 내용을 저장한다.
 - Phase 2 반박은 근거 없이 보낼 수 없다. rebuttal-template의 근거 섹션이 비어있으면 무효다.
 - shift 발생 여부와 내용은 반드시 토론 로그에 기록된다.
 - ADR 파일은 반드시 `.dev/adr/`에 저장된다. 다른 경로 사용 금지.
-- TeamDelete는 모든 teammates shutdown 확인 후에만 호출한다.
+- **모든 작업 완료 후 TeamDelete 필수**: ADR 파일 저장 완료 → 모든 teammates에게 shutdown 신호 전송 → 모든 teammate 종료 확인 → 즉시 `TeamDelete()` 실행. TeamDelete 없이 council workflow를 종료할 수 없다.
