@@ -28,7 +28,27 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash scripts/execute-stop.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bash scripts/mini-stop.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/mini-start-session.sh"
           }
         ]
       }

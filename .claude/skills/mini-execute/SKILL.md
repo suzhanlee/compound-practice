@@ -35,23 +35,44 @@ test -f .dev/task/spec.json && echo "exists" || echo "NOT FOUND"
 ✗ .dev/task/spec.json 파일이 없습니다. taskify를 먼저 실행하세요.
 ```
 
-**1-2. 태스크 목록 로드**
+**1-2. 태스크 목록 로드 및 status 필터링**
 
 `.dev/task/spec.json` 을 Read하여 `tasks` 배열을 파악한다.
 
-tasks가 비어있으면 "태스크가 없습니다" 출력 후 종료한다.
+status != "end" 인 task만 처리 대상으로 필터링한다:
+```bash
+jq '[.tasks[] | select(.status != "end")]' spec.json
+```
 
-**1-3. 태스크 루프**
+필터링된 task가 없으면 "모든 태스크가 완료되었습니다" 출력 후 종료한다.
 
-각 태스크를 순서대로 처리한다. 각 태스크마다:
+**1-3. 태스크 루프 + status 갱신**
+
+각 미완료 태스크를 순서대로 처리한다. 각 태스크마다:
 
 1. 태스크 번호와 action을 출력한다:
    ```
    ── Task N: {action} ──
    ```
-2. `task.step` 목록을 순서대로 구현한다.
-3. `task.verification` 명령어를 Bash로 실행하여 검증한다.
-4. Step 2(Friction Self-Assessment) ~ Step 4(Append to Session)를 각 태스크마다 수행한다.
+
+2. **Bash (jq)로 status = "processing" 업데이트:**
+   ```bash
+   jq --argjson i $TASK_INDEX '.tasks[$i].status = "processing"' spec.json > tmp && mv tmp spec.json
+   ```
+
+3. `task.step` 목록을 순서대로 구현한다.
+
+4. `task.verification` 명령어를 Bash로 실행하여 검증한다:
+   - **exit code 0 (통과)**: Bash (jq)로 status = "end" 업데이트
+     ```bash
+     jq --argjson i $TASK_INDEX '.tasks[$i].status = "end"' spec.json > tmp && mv tmp spec.json
+     ```
+   - **exit code != 0 (실패)**: Bash (jq)로 status = "not_start" 업데이트, 다음 task로 계속
+     ```bash
+     jq --argjson i $TASK_INDEX '.tasks[$i].status = "not_start"' spec.json > tmp && mv tmp spec.json
+     ```
+
+5. Step 2(Friction Self-Assessment) ~ Step 4(Append to Session)를 각 태스크마다 수행한다.
 
 오류가 발생해도 다음 태스크를 계속 시도한다. 오류 내용은 Completion Report에 포함한다.
 
@@ -120,8 +141,7 @@ mkdir -p .mini-harness/session
 모든 태스크 완료 후 최종 요약:
 ```
 ── mini-execute 완료 ──
-  총 태스크: N개
-  성공: N개 / 실패: N개
+  총 태스크: N개 / end: N개 / not_start: N개 / processing: N개
 ```
 
 ## Rules
