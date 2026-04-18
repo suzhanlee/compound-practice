@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
-from .value_objects import OrderId, MenuItemId, Money
+from .value_objects import OrderId, MenuItemId, Money, DiscountId
+from .discount import Discount
 
 
 class OrderStatus(Enum):
@@ -47,6 +48,7 @@ class Order:
     id: OrderId
     items: List[OrderItem] = field(default_factory=list)
     status: OrderStatus = OrderStatus.PENDING
+    _discounts: List[Discount] = field(default_factory=list, init=False)
 
     @classmethod
     def create(cls) -> Order:
@@ -96,6 +98,38 @@ class Order:
         if self.status == OrderStatus.PAID:
             raise ValueError("결제 완료된 주문은 취소할 수 없습니다.")
         self.status = OrderStatus.CANCELLED
+
+    def apply_discount(self, discount: Discount):
+        if self.status != OrderStatus.PENDING:
+            raise ValueError("대기중 상태에서만 할인을 적용할 수 있습니다.")
+        existing = next(
+            (d for d in self._discounts if d.code == discount.code),
+            None
+        )
+        if existing:
+            raise ValueError(f"이미 적용된 쿠폰입니다: {discount.code.value}")
+        self._discounts.append(discount)
+
+    def remove_discount(self, discount_id: DiscountId):
+        if self.status != OrderStatus.PENDING:
+            raise ValueError("대기중 상태에서만 할인을 제거할 수 있습니다.")
+        self._discounts = [d for d in self._discounts if d.id != discount_id]
+
+    def get_discounts(self) -> List[Discount]:
+        return self._discounts.copy()
+
+    def get_total_after_discounts(self) -> Money:
+        total = self.total_amount
+        for discount in self._discounts:
+            if discount.rule.discount_type == "fixed":
+                total = Money(
+                    max(Decimal("0"), total.amount - discount.rule.value),
+                    total.currency
+                )
+            elif discount.rule.discount_type == "percentage":
+                discount_amount = total.amount * (discount.rule.value / Decimal("100"))
+                total = Money(total.amount - discount_amount, total.currency)
+        return total
 
     @property
     def total_amount(self) -> Money:
