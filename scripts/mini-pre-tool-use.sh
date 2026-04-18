@@ -24,11 +24,21 @@ if [[ "$TOOL_NAME" == "Skill" && -n "$SKILL_NAME" ]]; then
   elif [[ -f "$STATE_FILE" ]]; then
     # 체인 중 다음 스킬: skill_name 갱신, goal 유지
     GOAL=$(jq -r '.goal // empty' "$STATE_FILE")
-    jq \
-      --arg name "$SKILL_NAME" \
-      --arg ts "$TIMESTAMP" \
-      '.skill_name = $name | .status = "processing" | .timestamp = $ts' \
-      "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    if [[ "$SKILL_NAME" == "mini-execute" ]]; then
+      # mini-execute: last_action 초기화
+      jq \
+        --arg name "$SKILL_NAME" \
+        --arg ts "$TIMESTAMP" \
+        '.skill_name = $name | .status = "processing" | .last_action = "execute" | .timestamp = $ts' \
+        "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    else
+      # 다른 스킬
+      jq \
+        --arg name "$SKILL_NAME" \
+        --arg ts "$TIMESTAMP" \
+        '.skill_name = $name | .status = "processing" | .timestamp = $ts' \
+        "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    fi
   fi
 fi
 

@@ -48,7 +48,8 @@
     {
       "action": string,        // "동사+목적어" 형태의 구현 단위 (필수)
       "verification": string,  // 실행 가능한 CLI 검증 명령어 (필수)
-      "step": string[]         // 구현 단계 목록, 3~5개 (필수, 비어있으면 안 됨)
+      "step": string[],        // 구현 단계 목록, 3~5개 (필수, 비어있으면 안 됨)
+      "status": "not_start"    // 초기 상태, "not_start" | "processing" | "end" (필수)
     }
   ]
 }
@@ -75,7 +76,8 @@
         "요청 바디에서 product_id, quantity 추출 및 타입 검증",
         "CartService.add_item(user_id, product_id, quantity) 호출",
         "성공 시 201 Created + 변경된 장바구니 상태 반환"
-      ]
+      ],
+      "status": "not_start"
     },
     {
       "action": "로그인 사용자 인증 미들웨어 연결",
@@ -84,7 +86,8 @@
         "JWT 토큰 검증 미들웨어 함수 작성 (jwt.decode 래핑)",
         "토큰 만료/누락 시 401 Unauthorized 반환",
         "장바구니 라우터에 인증 미들웨어 적용"
-      ]
+      ],
+      "status": "not_start"
     },
     {
       "action": "장바구니 수량 범위 유효성 검증 구현",
@@ -95,7 +98,8 @@
         "qty > 99 이면 ValidationError('최대 수량은 99개입니다') 발생",
         "add_item() 호출 전 validate_quantity() 선행 실행",
         "400 Bad Request + 에러 메시지 응답 처리"
-      ]
+      ],
+      "status": "not_start"
     },
     {
       "action": "재고 없는 상품 장바구니 추가 차단 구현",
@@ -105,7 +109,8 @@
         "stock <= 0 이면 OutOfStockError('재고가 없는 상품입니다') 발생",
         "CartService.add_item() 내 재고 확인을 수량 검증 이전에 실행",
         "400 Bad Request + OutOfStockError 메시지 반환 처리"
-      ]
+      ],
+      "status": "not_start"
     }
   ]
 }

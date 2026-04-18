@@ -109,11 +109,14 @@ mkdir -p .dev/task
     {
       "action": "...",
       "verification": "...",
-      "step": ["...", "...", "..."]
+      "step": ["...", "...", "..."],
+      "status": "not_start"
     }
   ]
 }
 ```
+
+각 task의 `status`는 초기 값으로 `"not_start"` 를 설정한다.
 
 **4-3. 저장 후 구조 검증** (검사마다 개별 실행하여 결과를 명확히 확인한다)
 
@@ -123,8 +126,8 @@ jq 'if (.tasks | type) == "array" then "OK: tasks is array" else "INVALID: .task
 ```
 
 ```bash
-# [검사 2] 필수 필드 누락 task 검사
-jq '[.tasks[] | select(.action == null or .verification == null or .step == null)] | if length == 0 then "OK: no incomplete tasks" else map("INCOMPLETE: \(.action // "unknown")") end' \
+# [검사 2] 필수 필드 누락 task 검사 (action, verification, step, status)
+jq '[.tasks[] | select(.action == null or .verification == null or .step == null or .status == null)] | if length == 0 then "OK: no incomplete tasks" else map("INCOMPLETE: \(.action // "unknown")") end' \
   .dev/task/spec.json
 ```
 
