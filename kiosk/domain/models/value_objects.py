@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from uuid import UUID, uuid4
 from datetime import datetime
@@ -111,6 +111,42 @@ class DiscountRule:
             raise ValueError("정률 할인은 100% 이하여야 합니다.")
         if self.applicable_target not in ["order", "product", "both"]:
             raise ValueError("적용 대상은 'order', 'product', 'both' 중 하나여야 합니다.")
+
+
+@dataclass(frozen=True)
+class Stock:
+    value: int
+    _unlimited: bool = field(default=False, compare=False, repr=False)
+
+    def __post_init__(self):
+        if not self._unlimited and self.value < 0:
+            raise ValueError("재고는 0 이상이어야 합니다.")
+
+    @classmethod
+    def unlimited(cls) -> Stock:
+        return cls(value=0, _unlimited=True)
+
+    def is_unlimited(self) -> bool:
+        return self._unlimited
+
+    def has_enough(self, qty: int) -> bool:
+        return self._unlimited or self.value >= qty
+
+    def decrease(self, qty: int) -> None:
+        if self._unlimited:
+            return
+        if self.value < qty:
+            raise ValueError(f"재고가 부족합니다. 현재 재고: {self.value}, 요청: {qty}")
+        object.__setattr__(self, 'value', self.value - qty)
+
+    def restock(self, qty: int) -> None:
+        if qty <= 0:
+            raise ValueError("재고 추가량은 0보다 커야 합니다.")
+        if self._unlimited:
+            object.__setattr__(self, '_unlimited', False)
+            object.__setattr__(self, 'value', qty)
+        else:
+            object.__setattr__(self, 'value', self.value + qty)
 
 
 @dataclass(frozen=True)
