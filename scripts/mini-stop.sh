@@ -1,23 +1,32 @@
 #!/bin/bash
 # mini-stop.sh — Stop hook for mini-harness orchestration + compound guard
-# Orchestrates skill chain via state.json; fallback to original compound guard
+# Orchestrates skill chain via run-scoped state; fallback to original compound guard
 
 INPUT=$(cat)
 CWD=$(echo "$INPUT" | jq -r '.cwd')
-STATE_FILE="$CWD/.claude/state/state.json"
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 SESSION_FILE="$CWD/.mini-harness/session/learnings.json"
 
+RUNS_DIR="$CWD/.claude/state/runs"
+SESSIONS_DIR="$CWD/.claude/state/sessions"
+
+source "$CWD/scripts/harness-lib.sh"
+
+# ── run state 파일 resolve ──
+STATE_FILE=$(resolve_run_state "$CWD" "$SESSION_ID")
+
 # ── 오케스트레이션 체인 ──
-if [[ -f "$STATE_FILE" ]]; then
+if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
   SKILL_NAME=$(jq -r '.skill_name' "$STATE_FILE")
   GOAL=$(jq -r '.goal // empty' "$STATE_FILE")
+  RUN_ID=$(jq -r '.run_id' "$STATE_FILE")
   TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
   case "$SKILL_NAME" in
     mini-harness)
       jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \
         "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-      echo "{\"decision\":\"block\",\"reason\":\"council 스킬을 실행하세요. goal: \\\"$GOAL\\\"\"}"
+      echo "{\"decision\":\"block\",\"reason\":\"council 스킬을 실행하세요. goal: \\\"$GOAL\\\" run_id:$RUN_ID\"}"
       exit 0
       ;;
     council)
@@ -26,43 +35,44 @@ if [[ -f "$STATE_FILE" ]]; then
       [[ -n "$ADR_FILE" ]] && ADR_ARG=" adr:$ADR_FILE"
       jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \
         "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-      echo "{\"decision\":\"block\",\"reason\":\"mini-specify 스킬을 실행하세요. args: \\\"$GOAL$ADR_ARG\\\"\"}"
+      echo "{\"decision\":\"block\",\"reason\":\"mini-specify 스킬을 실행하세요. args: \\\"$GOAL$ADR_ARG run_id:$RUN_ID\\\"\"}"
       exit 0
       ;;
     mini-specify)
       jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \
         "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-      echo "{\"decision\":\"block\",\"reason\":\"taskify 스킬을 실행하세요.\"}"
+      echo "{\"decision\":\"block\",\"reason\":\"taskify 스킬을 실행하세요. args: \\\"run_id:$RUN_ID\\\"\"}"
       exit 0
       ;;
     taskify)
       jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \
         "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-      echo "{\"decision\":\"block\",\"reason\":\"dependency-resolve 스킬을 실행하세요.\"}"
+      echo "{\"decision\":\"block\",\"reason\":\"dependency-resolve 스킬을 실행하세요. args: \\\"run_id:$RUN_ID\\\"\"}"
       exit 0
       ;;
     dependency-resolve)
       jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \
         "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-      echo "{\"decision\":\"block\",\"reason\":\"mini-execute 스킬을 실행하세요.\"}"
+      echo "{\"decision\":\"block\",\"reason\":\"mini-execute 스킬을 실행하세요. args: \\\"run_id:$RUN_ID\\\"\"}"
       exit 0
       ;;
     mini-execute)
       jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \
         "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-      echo "{\"decision\":\"block\",\"reason\":\"mini-compound 스킬을 실행하세요.\"}"
+      echo "{\"decision\":\"block\",\"reason\":\"mini-compound 스킬을 실행하세요. args: \\\"run_id:$RUN_ID\\\"\"}"
       exit 0
       ;;
     mini-compound)
-      # 체인 완료: state.json 삭제
+      # 체인 완료: run state 파일 및 세션 포인터 삭제
       rm -f "$STATE_FILE"
+      [[ -n "$SESSION_ID" ]] && rm -f "$SESSIONS_DIR/${SESSION_ID}.run_id"
       echo '{"decision":"approve"}'
       exit 0
       ;;
   esac
 fi
 
-# ── 기존 compound guard (state.json 없을 때) ──
+# ── 기존 compound guard (run state 없을 때) ──
 if [[ -f "$SESSION_FILE" ]]; then
   COUNT=$(jq 'length' "$SESSION_FILE" 2>/dev/null || echo 0)
   echo "{\"decision\":\"block\",\"reason\":\"⚠️  $COUNT 개의 learning이 session에 기록되어 있습니다. /mini-compound 를 실행하여 영구 저장하세요.\"}"
