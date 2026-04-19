@@ -20,7 +20,7 @@ allowed-tools:
 
 `/mini-harness [goal]` 한 번으로 전체 피드백 루프를 자동 실행한다.
 실제 오케스트레이션은 Stop 훅(`scripts/mini-stop.sh`)이 담당한다.
-상태는 `.claude/state/runs/run-{run_id}.json` 에서 관리된다. 세션 포인터는 `.claude/state/sessions/{session_id}.run_id`.
+상태는 `.dev/harness/runs/run-{run_id}.json` 에서 관리된다. 세션 포인터는 `.dev/harness/sessions/{session_id}.run_id`.
 
 ## 오케스트레이션 체인 순서
 

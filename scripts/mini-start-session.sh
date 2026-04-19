@@ -6,12 +6,12 @@ INPUT=$(cat)
 CWD=$(echo "$INPUT" | jq -r '.cwd')
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 IS_COMPACT=$(echo "$INPUT" | jq -r '.is_compact // false')
-LOG_FILE="$CWD/.claude/state/session-recovery.log"
+LOG_FILE="$CWD/.dev/harness/session-recovery.log"
 
-RUNS_DIR="$CWD/.claude/state/runs"
-SESSIONS_DIR="$CWD/.claude/state/sessions"
+RUNS_DIR="$CWD/.dev/harness/runs"
+SESSIONS_DIR="$CWD/.dev/harness/sessions"
 
-mkdir -p "$CWD/.claude/state"
+mkdir -p "$CWD/.dev/harness"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 echo "[$TIMESTAMP] SessionStart fired. session_id=$SESSION_ID is_compact=$IS_COMPACT" >> "$LOG_FILE"
 

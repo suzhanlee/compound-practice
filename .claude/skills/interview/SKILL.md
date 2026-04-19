@@ -30,7 +30,7 @@ allowed-tools:
 
 ```bash
 RUN_ID=$(echo "$ARGS" | grep -o 'run_id:[^ ]*' | cut -d: -f2)
-STATE_FILE=".claude/state/runs/run-${RUN_ID}.json"
+STATE_FILE=".dev/harness/runs/run-${RUN_ID}.json"
 GOAL=$(jq -r '.goal' "$STATE_FILE")
 REQ_DIR=$(dirname "$(jq -r '.paths.requirements' "$STATE_FILE")")
 INTERVIEW_PATH="$REQ_DIR/interview.json"

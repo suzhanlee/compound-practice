@@ -7,8 +7,8 @@ CWD=$(echo "$INPUT" | jq -r '.cwd')
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 SESSION_FILE="$CWD/.mini-harness/session/learnings.json"
 
-RUNS_DIR="$CWD/.claude/state/runs"
-SESSIONS_DIR="$CWD/.claude/state/sessions"
+RUNS_DIR="$CWD/.dev/harness/runs"
+SESSIONS_DIR="$CWD/.dev/harness/sessions"
 
 source "$CWD/scripts/harness-lib.sh"
 

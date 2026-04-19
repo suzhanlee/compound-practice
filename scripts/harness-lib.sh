@@ -7,8 +7,8 @@
 resolve_run_state() {
   local cwd="$1"
   local session_id="$2"
-  local sessions_dir="$cwd/.claude/state/sessions"
-  local runs_dir="$cwd/.claude/state/runs"
+  local sessions_dir="$cwd/.dev/harness/sessions"
+  local runs_dir="$cwd/.dev/harness/runs"
   local ptr="$sessions_dir/${session_id}.run_id"
 
   if [[ -f "$ptr" ]]; then
