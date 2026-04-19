@@ -20,19 +20,21 @@ if [[ "$TOOL_NAME" == "Skill" && -n "$SKILL_NAME" ]]; then
   if [[ "$SKILL_NAME" == "mini-harness" ]]; then
     # 최초 진입: run_id 생성, run state 파일 신규 생성, 세션 포인터 등록
     RUN_ID=$(generate_run_id)
-    mkdir -p "$RUNS_DIR" "$SESSIONS_DIR"
+    RUN_DIR=".dev/harness/runs/run-${RUN_ID}"
+    mkdir -p "$CWD/$RUN_DIR" "$SESSIONS_DIR"
 
-    STATE_FILE="$RUNS_DIR/run-${RUN_ID}.json"
-    REQ_PATH=".dev/requirements/run-${RUN_ID}/requirements.json"
-    SPEC_PATH=".dev/task/run-${RUN_ID}/spec.json"
+    STATE_FILE="$CWD/$RUN_DIR/state.json"
 
     jq -n \
       --arg run_id "$RUN_ID" \
       --arg name "mini-harness" \
       --arg goal "$ARGS" \
       --arg ts "$TIMESTAMP" \
-      --arg req_path "$REQ_PATH" \
-      --arg spec_path "$SPEC_PATH" \
+      --arg run_dir "$RUN_DIR" \
+      --arg interview  "$RUN_DIR/interview.json" \
+      --arg req_path   "$RUN_DIR/requirements.json" \
+      --arg spec_path  "$RUN_DIR/spec.json" \
+      --arg adr_dir    "$RUN_DIR/adr" \
       '{
         "run_id": $run_id,
         "skill_name": $name,
@@ -40,8 +42,11 @@ if [[ "$TOOL_NAME" == "Skill" && -n "$SKILL_NAME" ]]; then
         "goal": $goal,
         "timestamp": $ts,
         "paths": {
+          "run_dir":      $run_dir,
+          "interview":    $interview,
           "requirements": $req_path,
-          "spec": $spec_path
+          "spec":         $spec_path,
+          "adr_dir":      $adr_dir
         }
       }' > "$STATE_FILE"
 

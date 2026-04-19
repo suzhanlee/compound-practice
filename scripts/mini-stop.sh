@@ -30,10 +30,10 @@ if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
       exit 0
       ;;
     interview)
-      INTERVIEW_FILE=".dev/requirements/run-${RUN_ID}/interview.json"
+      INTERVIEW_FILE=$(jq -r '.paths.interview // empty' "$STATE_FILE")
       INTERVIEW_ARG=""
       REFINED_GOAL="$GOAL"
-      if [[ -f "$CWD/$INTERVIEW_FILE" ]]; then
+      if [[ -n "$INTERVIEW_FILE" && -f "$CWD/$INTERVIEW_FILE" ]]; then
         INTERVIEW_ARG=" interview:$INTERVIEW_FILE"
         REFINED_GOAL=$(jq -r '.refined_goal // .original_goal' "$CWD/$INTERVIEW_FILE" 2>/dev/null || echo "$GOAL")
       fi
@@ -43,7 +43,9 @@ if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
       exit 0
       ;;
     council)
-      ADR_FILE=$(ls -t "$CWD/.dev/adr/"*.md 2>/dev/null | head -1)
+      ADR_DIR=$(jq -r '.paths.adr_dir // empty' "$STATE_FILE")
+      ADR_FILE=""
+      [[ -n "$ADR_DIR" ]] && ADR_FILE=$(ls -t "$CWD/$ADR_DIR/"*.md 2>/dev/null | head -1)
       ADR_ARG=""
       [[ -n "$ADR_FILE" ]] && ADR_ARG=" adr:$ADR_FILE"
       jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \

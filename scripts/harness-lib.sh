@@ -14,7 +14,7 @@ resolve_run_state() {
   if [[ -f "$ptr" ]]; then
     local run_id
     run_id=$(cat "$ptr")
-    local state_file="$runs_dir/run-${run_id}.json"
+    local state_file="$runs_dir/run-${run_id}/state.json"
     if [[ -f "$state_file" ]]; then
       echo "$state_file"
       return 0

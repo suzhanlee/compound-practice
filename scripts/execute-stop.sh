@@ -24,8 +24,8 @@ fi
 # spec 경로 동적 취득
 SPEC_PATH=$(jq -r '.paths.spec // empty' "$STATE_FILE")
 if [[ -z "$SPEC_PATH" ]]; then
-  # fallback: 레거시 고정 경로
-  SPEC_PATH=".dev/task/spec.json"
+  # fallback: 수동 호출(run_id 없음) 시 레거시 경로
+  SPEC_PATH=".dev/harness/spec.json"
 fi
 SPEC_FILE="$CWD/$SPEC_PATH"
 

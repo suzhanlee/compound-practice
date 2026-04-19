@@ -60,7 +60,8 @@ if [[ ! -d "$RUNS_DIR" ]]; then
 fi
 
 ACTIVE_RUNS=()
-for run_file in "$RUNS_DIR"/run-*.json; do
+for run_dir in "$RUNS_DIR"/run-*/; do
+  run_file="$run_dir/state.json"
   [[ -f "$run_file" ]] || continue
   ACTIVE_RUNS+=("$run_file")
 done
