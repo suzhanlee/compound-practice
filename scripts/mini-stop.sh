@@ -8,7 +8,6 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 SESSION_FILE="$CWD/.mini-harness/session/learnings.json"
 
 RUNS_DIR="$CWD/.dev/harness/runs"
-SESSIONS_DIR="$CWD/.dev/harness/sessions"
 
 source "$CWD/scripts/harness-lib.sh"
 
@@ -79,8 +78,9 @@ if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
       ;;
     mini-compound)
       # 체인 완료: run state 파일 및 세션 포인터 삭제
+      RUN_DIR_ABS=$(dirname "$(dirname "$STATE_FILE")")
       rm -f "$STATE_FILE"
-      [[ -n "$SESSION_ID" ]] && rm -f "$SESSIONS_DIR/${SESSION_ID}.run_id"
+      [[ -n "$SESSION_ID" ]] && rm -f "$RUN_DIR_ABS/sessions/${SESSION_ID}"
       echo '{"decision":"approve"}'
       exit 0
       ;;

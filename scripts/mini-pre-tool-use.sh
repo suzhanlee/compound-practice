@@ -10,7 +10,6 @@ CWD=$(echo "$INPUT" | jq -r '.cwd')
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 
 RUNS_DIR="$CWD/.dev/harness/runs"
-SESSIONS_DIR="$CWD/.dev/harness/sessions"
 
 source "$CWD/scripts/harness-lib.sh"
 
@@ -21,39 +20,46 @@ if [[ "$TOOL_NAME" == "Skill" && -n "$SKILL_NAME" ]]; then
     # 최초 진입: run_id 생성, run state 파일 신규 생성, 세션 포인터 등록
     RUN_ID=$(generate_run_id)
     RUN_DIR=".dev/harness/runs/run-${RUN_ID}"
-    mkdir -p "$CWD/$RUN_DIR" "$SESSIONS_DIR"
+    mkdir -p "$CWD/$RUN_DIR/state" \
+             "$CWD/$RUN_DIR/sessions" \
+             "$CWD/$RUN_DIR/interview" \
+             "$CWD/$RUN_DIR/requirement" \
+             "$CWD/$RUN_DIR/spec" \
+             "$CWD/$RUN_DIR/adr"
 
-    STATE_FILE="$CWD/$RUN_DIR/state.json"
+    STATE_FILE="$CWD/$RUN_DIR/state/state.json"
 
     jq -n \
-      --arg run_id "$RUN_ID" \
-      --arg name "mini-harness" \
-      --arg goal "$ARGS" \
-      --arg ts "$TIMESTAMP" \
-      --arg run_dir "$RUN_DIR" \
-      --arg interview  "$RUN_DIR/interview.json" \
-      --arg req_path   "$RUN_DIR/requirements.json" \
-      --arg spec_path  "$RUN_DIR/spec.json" \
-      --arg adr_dir    "$RUN_DIR/adr" \
+      --arg run_id   "$RUN_ID" \
+      --arg name     "mini-harness" \
+      --arg goal     "$ARGS" \
+      --arg ts       "$TIMESTAMP" \
+      --arg run_dir  "$RUN_DIR" \
+      --arg state    "$RUN_DIR/state/state.json" \
+      --arg interview "$RUN_DIR/interview/interview.json" \
+      --arg req_path  "$RUN_DIR/requirement/requirements.json" \
+      --arg spec_path "$RUN_DIR/spec/spec.json" \
+      --arg adr_dir   "$RUN_DIR/adr" \
+      --arg sess_dir  "$RUN_DIR/sessions" \
       '{
-        "run_id": $run_id,
+        "run_id":     $run_id,
         "skill_name": $name,
-        "status": "processing",
-        "goal": $goal,
-        "timestamp": $ts,
+        "status":     "processing",
+        "goal":       $goal,
+        "timestamp":  $ts,
         "paths": {
           "run_dir":      $run_dir,
+          "state":        $state,
           "interview":    $interview,
           "requirements": $req_path,
           "spec":         $spec_path,
-          "adr_dir":      $adr_dir
+          "adr_dir":      $adr_dir,
+          "sessions_dir": $sess_dir
         }
       }' > "$STATE_FILE"
 
-    # 세션 포인터 등록
-    if [[ -n "$SESSION_ID" ]]; then
-      echo "$RUN_ID" > "$SESSIONS_DIR/${SESSION_ID}.run_id"
-    fi
+    # 세션 포인터 등록 (빈 마커 파일)
+    [[ -n "$SESSION_ID" ]] && touch "$CWD/$RUN_DIR/sessions/${SESSION_ID}"
 
   else
     # 체인 중 다음 스킬: 세션 포인터로 STATE_FILE resolve
@@ -62,8 +68,8 @@ if [[ "$TOOL_NAME" == "Skill" && -n "$SKILL_NAME" ]]; then
     if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
       # 세션 포인터 갱신 (compact 후 새 session_id로 들어왔을 경우 대비)
       if [[ -n "$SESSION_ID" ]]; then
-        RUN_ID=$(jq -r '.run_id' "$STATE_FILE")
-        echo "$RUN_ID" > "$SESSIONS_DIR/${SESSION_ID}.run_id"
+        RUN_DIR_ABS=$(dirname "$(dirname "$STATE_FILE")")
+        touch "$RUN_DIR_ABS/sessions/${SESSION_ID}"
       fi
 
       if [[ "$SKILL_NAME" == "mini-execute" ]]; then

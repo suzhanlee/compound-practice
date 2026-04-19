@@ -7,19 +7,13 @@
 resolve_run_state() {
   local cwd="$1"
   local session_id="$2"
-  local sessions_dir="$cwd/.dev/harness/sessions"
   local runs_dir="$cwd/.dev/harness/runs"
-  local ptr="$sessions_dir/${session_id}.run_id"
 
-  if [[ -f "$ptr" ]]; then
-    local run_id
-    run_id=$(cat "$ptr")
-    local state_file="$runs_dir/run-${run_id}/state.json"
-    if [[ -f "$state_file" ]]; then
-      echo "$state_file"
-      return 0
-    fi
-  fi
+  for run_dir in "$runs_dir"/run-*/; do
+    [[ -f "$run_dir/sessions/$session_id" ]] || continue
+    local state_file="$run_dir/state/state.json"
+    [[ -f "$state_file" ]] && echo "$state_file" && return 0
+  done
   echo ""
 }
 

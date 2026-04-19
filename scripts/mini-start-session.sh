@@ -9,7 +9,6 @@ IS_COMPACT=$(echo "$INPUT" | jq -r '.is_compact // false')
 LOG_FILE="$CWD/.dev/harness/session-recovery.log"
 
 RUNS_DIR="$CWD/.dev/harness/runs"
-SESSIONS_DIR="$CWD/.dev/harness/sessions"
 
 mkdir -p "$CWD/.dev/harness"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
@@ -61,7 +60,7 @@ fi
 
 ACTIVE_RUNS=()
 for run_dir in "$RUNS_DIR"/run-*/; do
-  run_file="$run_dir/state.json"
+  run_file="$run_dir/state/state.json"
   [[ -f "$run_file" ]] || continue
   ACTIVE_RUNS+=("$run_file")
 done
@@ -76,9 +75,9 @@ fi
 if [[ "$ACTIVE_COUNT" -eq 1 ]]; then
   # 단일 활성 run: 자동으로 새 세션에 연결
   STATE_FILE="${ACTIVE_RUNS[0]}"
+  RUN_DIR_ABS=$(dirname "$(dirname "$STATE_FILE")")
   RUN_ID=$(jq -r '.run_id' "$STATE_FILE")
-  mkdir -p "$SESSIONS_DIR"
-  echo "$RUN_ID" > "$SESSIONS_DIR/${SESSION_ID}.run_id"
+  touch "$RUN_DIR_ABS/sessions/${SESSION_ID}"
   echo "[$TIMESTAMP] Auto-recovered: run_id=$RUN_ID → session $SESSION_ID" >> "$LOG_FILE"
   handle_active_state "$STATE_FILE" "$IS_COMPACT" "$CWD"
   exit $?
