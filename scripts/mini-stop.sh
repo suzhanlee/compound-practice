@@ -26,7 +26,20 @@ if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
     mini-harness)
       jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \
         "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-      echo "{\"decision\":\"block\",\"reason\":\"council 스킬을 실행하세요. goal: \\\"$GOAL\\\" run_id:$RUN_ID\"}"
+      echo "{\"decision\":\"block\",\"reason\":\"interview 스킬을 실행하세요. args: \\\"run_id:$RUN_ID\\\"\"}"
+      exit 0
+      ;;
+    interview)
+      INTERVIEW_FILE=".dev/requirements/run-${RUN_ID}/interview.json"
+      INTERVIEW_ARG=""
+      REFINED_GOAL="$GOAL"
+      if [[ -f "$CWD/$INTERVIEW_FILE" ]]; then
+        INTERVIEW_ARG=" interview:$INTERVIEW_FILE"
+        REFINED_GOAL=$(jq -r '.refined_goal // .original_goal' "$CWD/$INTERVIEW_FILE" 2>/dev/null || echo "$GOAL")
+      fi
+      jq --arg ts "$TIMESTAMP" '.status = "end" | .timestamp = $ts' \
+        "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+      echo "{\"decision\":\"block\",\"reason\":\"council 스킬을 실행하세요. goal: \\\"$REFINED_GOAL\\\"$INTERVIEW_ARG run_id:$RUN_ID\"}"
       exit 0
       ;;
     council)

@@ -24,12 +24,13 @@ allowed-tools:
 
 ## 오케스트레이션 체인 순서
 
-1. **council** — goal 관련 결정 도출, ADR 생성
-2. **mini-specify** — goal + ADR로 요구사항 생성, `.dev/requirements/requirements.json` 저장
-3. **taskify** — requirements.json 읽기, 태스크 분해, `.dev/task/spec.json` 저장
-4. **dependency-resolve** — spec.json의 task 간 의존성 분석, dependencies[] 및 priority 필드 추가
-5. **mini-execute** — spec.json 읽기, 의존성 순서에 따라 모든 태스크 실행
-6. **mini-compound** — session learnings → 영구 파일 승격
+1. **interview** — 소크라테스 문답(6개 질문)으로 goal 구체화, `interview.json` 저장
+2. **council** — interview.json + goal로 ADR 생성 (product-owner 패널 포함)
+3. **mini-specify** — goal + ADR로 요구사항 생성, `.dev/requirements/requirements.json` 저장
+4. **taskify** — requirements.json 읽기, 태스크 분해, `.dev/task/spec.json` 저장
+5. **dependency-resolve** — spec.json의 task 간 의존성 분석, dependencies[] 및 priority 필드 추가
+6. **mini-execute** — spec.json 읽기, 의존성 순서에 따라 모든 태스크 실행
+7. **mini-compound** — session learnings → 영구 파일 승격
 
 ## 동작 방식
 
@@ -45,6 +46,8 @@ allowed-tools:
 state.json: { skill_name, status: processing|end, goal, timestamp }
 
 mini-harness (processing)
+  → Stop hook: status=end → trigger interview
+interview (processing)
   → Stop hook: status=end → trigger council
 council (processing)
   → Stop hook: status=end → trigger mini-specify

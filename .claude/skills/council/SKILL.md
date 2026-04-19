@@ -37,9 +37,39 @@ allowed-tools:
 
 ## Workflow
 
+### Pre-phase 0: Interview 컨텍스트 로드 (해당 시)
+
+인자에 `interview:` 접두사가 포함된 경우 해당 파일을 Read한다.
+
+```bash
+INTERVIEW_FILE=$(echo "$ARGS" | grep -o 'interview:[^ ]*' | cut -d: -f2)
+```
+
+파일이 있으면 아래 필드를 추출해 이후 모든 단계의 컨텍스트로 보유한다:
+- `refined_goal` → 토론 주제로 사용 (raw goal 대신)
+- `problem`, `users` → 렌즈 도출 시 반드시 반영
+- `success_criteria`, `constraints` → 패널 포지션 평가 기준
+
+추출한 내용을 출력한다:
+```
+📋 Interview 컨텍스트 로드
+───────────────────────────────────────
+refined_goal: "..."
+problem:      "..."
+users:        [...]
+success_criteria: [...]
+constraints:  [...]
+───────────────────────────────────────
+```
+
+interview 파일이 없으면 이 단계를 건너뛴다.
+
+---
+
 ### Pre-phase: 렌즈 & 패널 설계
 
 주제를 분석하여 아래를 결정한다.
+interview 컨텍스트가 있는 경우 `refined_goal`을 토론 주제로, `problem`/`users`를 렌즈 도출의 근거로 사용한다.
 
 **1. 렌즈 도출 (3~5개)**
 
@@ -53,9 +83,13 @@ allowed-tools:
 
 주제의 핵심 트레이드오프가 드러나는 신호를 추출한다. 일반적이지 않고 이 주제에 특화된 렌즈여야 한다.
 
+아래 1개를 **항상** 포함한다:
+- `사용자 가치 / 요구사항 충족도` — interview.json의 `success_criteria` 기반으로 평가 (interview 없으면 사용자 관점 일반 적용)
+
 **2. 패널리스트 결정 (최소 3명)**
 
-- 전문가 ≥ 2명: 주제 성격에 맞는 역할 (예: 기술 아키텍트, 비용 분석가, 조직/팀 전문가)
+- **product-owner 1명 (필수)**: interview.json의 `users`/`success_criteria` 관점에서 논증. interview 컨텍스트가 없을 경우 사용자/비즈니스 가치 관점을 대변한다.
+- 전문가 ≥ 1명: 주제 성격에 맞는 기술 역할 (예: 기술 아키텍트, 비용 분석가)
 - devil's advocate 1명: 지배적 의견에 반드시 도전하는 역할
 
 각 패널리스트에게 이름을 부여한다 (예: `tech-architect`, `cost-analyst`, `devils-advocate`).
