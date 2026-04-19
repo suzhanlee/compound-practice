@@ -6,6 +6,8 @@
 
 ```json
 {
+  "run_id": string,        // mini-harness run 식별자 (없으면 수동 호출)
+  "goal": string,          // 원래 goal 문자열
   "requirements": [
     {
       "index": number,     // 1부터 시작하는 순번 (필수)
@@ -45,6 +47,8 @@
 **taskify 직후:**
 ```json
 {
+  "run_id": string,            // mini-harness run 식별자 (없으면 수동 호출)
+  "goal": string,              // 원래 goal 문자열
   "tasks": [
     {
       "action": string,        // "동사+목적어" 형태의 구현 단위 (필수)
@@ -59,6 +63,8 @@
 **dependency-resolve 이후:**
 ```json
 {
+  "run_id": string,              // mini-harness run 식별자
+  "goal": string,                // 원래 goal 문자열
   "tasks": [
     {
       "action": string,              // "동사+목적어" 형태의 구현 단위

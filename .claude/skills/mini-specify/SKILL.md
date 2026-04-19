@@ -122,6 +122,8 @@ Step 4에서 생성한 태스크 목록을 아래 포맷으로 `$REQ_PATH`에 Wr
 
 ```json
 {
+  "run_id": "...",
+  "goal": "...",
   "requirements": [
     { "index": 1, "content": "태스크 설명" },
     { "index": 2, "content": "태스크 설명" }

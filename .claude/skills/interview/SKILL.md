@@ -168,6 +168,7 @@ mkdir -p "$REQ_DIR"
 
 ```json
 {
+  "run_id": "...",
   "original_goal": "...",
   "refined_goal": "...",
   "problem": "...",
