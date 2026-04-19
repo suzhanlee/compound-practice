@@ -4,11 +4,9 @@ description: |
   Use when the user says "/interview [run_id:xxx]".
   Socratic questioning to clarify requirements before council.
   Asks 6 structured questions across 3 rounds, synthesizes answers into
-  interview.json, and confirms with user via EnterPlanMode before saving.
+  interview.json, and confirms with user via AskUserQuestion before saving.
 allowed-tools:
   - AskUserQuestion
-  - EnterPlanMode
-  - ExitPlanMode
   - Write
   - Read
   - Bash
@@ -21,7 +19,7 @@ allowed-tools:
 `/interview run_id:xxx` 한 번으로 goal을 소크라테스 문답법으로 구체화한다:
 1. 3라운드(6개 질문)로 요구사항을 탐색
 2. 답변을 종합해 `refined_goal` 합성
-3. EnterPlanMode로 사용자에게 확인
+3. AskUserQuestion으로 사용자에게 확인
 4. 승인 후 `interview.json` 저장
 
 ---
@@ -134,9 +132,9 @@ AskUserQuestion 호출 (2개 질문):
 
 ---
 
-### Step 5: EnterPlanMode 확인
+### Step 5: AskUserQuestion 확인
 
-합성 결과를 아래 형식으로 출력 후 EnterPlanMode 진입:
+합성 결과를 아래 형식으로 텍스트 출력 후 AskUserQuestion으로 확인을 받는다:
 
 ```
 📋 요구사항 합성 결과
@@ -150,11 +148,16 @@ success_criteria: ["{Q4 답변}"]
 out_of_scope:     ["{Q5 답변}"]
 constraints:      ["{Q6 답변}"]
 ───────────────────────────────────────
-이 요구사항으로 council을 진행할까요?
-수정이 필요하면 피드백을 주세요.
 ```
 
-사용자가 ExitPlanMode로 승인하면 Step 6으로 진행한다.
+AskUserQuestion 호출:
+- 질문: "이 요구사항으로 council을 진행할까요?"
+- 옵션:
+  - "이대로 진행" — refined_goal과 모든 필드가 정확함, interview.json 저장 후 council로 이동
+  - "수정 필요" — 일부 내용을 고치고 싶음 (Other로 피드백 입력)
+
+사용자가 "이대로 진행"을 선택하면 Step 6으로 진행한다.
+"수정 필요"(또는 Other)를 선택한 경우 피드백을 반영해 refined_goal을 재합성한 뒤 Step 5를 반복한다.
 
 ---
 
@@ -193,6 +196,7 @@ Write 완료 후 출력:
 
 - 라운드는 반드시 순서대로 진행한다 (1 → 2 → 3). 라운드 간 선행 답변을 다음 질문 컨텍스트에 활용한다.
 - AskUserQuestion의 "Other" 옵션을 통해 사용자가 직접 입력한 경우, 그 내용을 JSON에 그대로 반영한다.
-- EnterPlanMode 전에 반드시 refined_goal을 합성한 뒤 진입한다. 미합성 상태로 진입 금지.
-- Write는 반드시 EnterPlanMode 승인(ExitPlanMode) 후에만 실행한다.
+- Step 5의 AskUserQuestion 전에 반드시 refined_goal을 합성해야 한다. 미합성 상태로 확인 진입 금지.
+- Write는 반드시 Step 5의 AskUserQuestion에서 "이대로 진행" 선택 후에만 실행한다.
+- EnterPlanMode/ExitPlanMode는 이 스킬에서 사용하지 않는다. 확인은 AskUserQuestion으로만 처리한다.
 - run_id가 없으면(수동 호출) `INTERVIEW_PATH=".dev/requirements/interview.json"`을 기본값으로 사용한다.
