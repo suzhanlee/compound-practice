@@ -2,9 +2,9 @@
 name: taskify
 description: |
   Use when the user says "/taskify".
-  Reads requirements from .dev/requirements/requirements.json,
+  Reads requirements from $REQ_PATH (run-scoped or fallback),
   analyzes the codebase tech stack, breaks down requirements into
-  structured tasks, and writes the result to $SPEC_PATH.
+  structured tasks, and writes the result to $SPEC_PATH (run-scoped or fallback).
 allowed-tools:
   - Glob
   - Read
@@ -16,7 +16,7 @@ allowed-tools:
 
 ## Purpose
 
-`.dev/requirements/requirements.json`의 요구사항을 읽어 코드베이스 기술 스택을 파악한 뒤,
+`$REQ_PATH`의 요구사항을 읽어 코드베이스 기술 스택을 파악한 뒤,
 구현 가능한 task 단위로 분해하여 `$SPEC_PATH`으로 저장한다.
 
 포맷 상세는 reference 파일을 참조한다:
@@ -163,7 +163,7 @@ jq '"task count: \(.tasks | length)"' $SPEC_PATH
 
 ```
 ✓ taskify 완료
-  - 요구사항: N개 (.dev/requirements/requirements.json)
+  - 요구사항: N개 ($REQ_PATH)
   - 생성된 tasks: M개
   - 기술 스택: {판별된 스택}
   - 저장: $SPEC_PATH

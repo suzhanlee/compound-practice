@@ -3,7 +3,7 @@ name: mini-harness
 description: |
   Use when the user says "/mini-harness [goal]".
   Hook-based orchestrator: triggers the full learning loop via Stop hooks.
-  Chain: council → mini-specify → taskify → dependency-resolve → mini-execute → mini-compound.
+  Chain: interview → council → mini-specify → taskify → dependency-resolve → mini-execute → mini-compound.
 allowed-tools:
   - Glob
   - Grep
@@ -20,7 +20,7 @@ allowed-tools:
 
 `/mini-harness [goal]` 한 번으로 전체 피드백 루프를 자동 실행한다.
 실제 오케스트레이션은 Stop 훅(`scripts/mini-stop.sh`)이 담당한다.
-상태는 `.claude/state/state.json` 에서 관리된다.
+상태는 `.claude/state/runs/run-{run_id}.json` 에서 관리된다. 세션 포인터는 `.claude/state/sessions/{session_id}.run_id`.
 
 ## 오케스트레이션 체인 순서
 
@@ -34,36 +34,38 @@ allowed-tools:
 
 ## 동작 방식
 
-- 이 스킬은 체인 시작점 역할만 함 (goal을 state.json에 저장)
-- 각 스킬 종료 후 Stop 훅이 발동 → 다음 스킬을 자동 트리거
-- PreToolUse 훅: Skill 호출 전 state.json 갱신
+- 이 스킬은 체인 시작점 역할만 함 (goal을 run state 파일에 저장)
+- PreToolUse 훅: run_id 생성 → `runs/run-{run_id}.json` 생성, `sessions/{session_id}.run_id` 기록
+- Stop 훅: 세션 포인터로 run state 조회 → 다음 스킬 결정, block message에 `run_id:xxx` 포함
 - PostToolUse 훅: mini-harness 완료 후 status 확인
-- Stop 훅: 현재 skill_name에 따라 다음 스킬 결정
 
 ## 상태 전이
 
 ```
-state.json: { skill_name, status: processing|end, goal, timestamp }
+runs/run-{run_id}.json: { run_id, skill_name, status: processing|end, goal, paths, timestamp }
 
 mini-harness (processing)
-  → Stop hook: status=end → trigger interview
+  → Stop hook: status=end → trigger interview (run_id:xxx)
 interview (processing)
-  → Stop hook: status=end → trigger council
+  → Stop hook: status=end → trigger council (run_id:xxx)
 council (processing)
-  → Stop hook: status=end → trigger mini-specify
+  → Stop hook: status=end → trigger mini-specify (run_id:xxx)
 mini-specify (processing)
-  → Stop hook: status=end → trigger taskify
+  → Stop hook: status=end → trigger taskify (run_id:xxx)
 taskify (processing)
-  → Stop hook: status=end → trigger mini-execute
+  → Stop hook: status=end → trigger dependency-resolve (run_id:xxx)
+dependency-resolve (processing)
+  → Stop hook: status=end → trigger mini-execute (run_id:xxx)
 mini-execute (processing)
-  → Stop hook: status=end → trigger mini-compound
+  → Stop hook: status=end → trigger mini-compound (run_id:xxx)
 mini-compound (processing)
-  → Stop hook: status=end → delete state.json → approve exit
+  → Stop hook: status=end → delete run-{run_id}.json + session pointer → approve exit
 ```
 
 ## Rules
 
-- PreToolUse 훅이 Skill 호출 전 state.json을 갱신한다.
-- Stop 훅이 skill_name을 읽어 다음 스킬을 결정한다.
-- 모든 스킬이 정상 완료되면 state.json이 자동 삭제되어 세션 종료 가능.
-- state.json 존재 시에만 orchestration 모드; 없으면 기존 compound guard 로직 작동.
+- PreToolUse 훅이 Skill 호출 전 run state 파일을 갱신한다.
+- Stop 훅이 세션 포인터 → run_id → state 파일 순으로 조회하여 다음 스킬을 결정한다.
+- 모든 스킬이 정상 완료되면 run state 파일과 세션 포인터가 자동 삭제되어 세션 종료 가능.
+- run state 파일 존재 시에만 orchestration 모드; 없으면 기존 compound guard 로직 작동.
+- compact 후 session_id가 바뀌어도 `runs/` 스캔으로 단일 활성 run을 자동 복구한다.
