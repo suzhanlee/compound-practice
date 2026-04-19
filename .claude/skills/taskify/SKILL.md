@@ -32,15 +32,15 @@ allowed-tools:
 **run_id가 있는 경우** (mini-harness 체인 실행):
 ```bash
 RUN_ID=$(echo "$ARGS" | grep -o 'run_id:[^ ]*' | cut -d: -f2)
-STATE_FILE=".dev/harness/runs/run-${RUN_ID}.json"
+STATE_FILE=".dev/harness/runs/run-${RUN_ID}/state.json"
 REQ_PATH=$(jq -r '.paths.requirements' "$STATE_FILE")
 SPEC_PATH=$(jq -r '.paths.spec' "$STATE_FILE")
 ```
 
 **run_id가 없는 경우** (수동 호출 — backward compatibility):
 ```bash
-REQ_PATH=".dev/requirements/requirements.json"
-SPEC_PATH="$SPEC_PATH"
+REQ_PATH=".dev/harness/requirements.json"
+SPEC_PATH=".dev/harness/spec.json"
 ```
 
 이후 모든 단계에서 `$REQ_PATH`, `$SPEC_PATH`를 사용한다.

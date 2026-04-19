@@ -5,7 +5,7 @@ description: |
   Facilitates a structured multi-panel debate to produce an ADR.
   Analyzes the topic to derive lenses, spawns a panel team via TeamCreate,
   runs a 2-phase debate (initial positions → direct rebuttal), and writes
-  the final ADR to .dev/adr/YYYY-MM-DD-{topic-slug}.md.
+  the final ADR to .dev/harness/runs/run-{run_id}/adr/ (run-scoped) or .dev/adr/ (manual).
 allowed-tools:
   - Agent
   - TeamCreate
@@ -24,7 +24,7 @@ allowed-tools:
 1. 주제 분석 → 렌즈 설계 → 패널 구성
 2. Phase 1: 패널 초기 의견 수집
 3. Phase 2: 직접 반박 토론 (teammate ↔ teammate)
-4. 최종 ADR 작성 → `.dev/adr/` 저장
+4. 최종 ADR 작성 → `.dev/harness/runs/run-{run_id}/adr/` 저장 (run-scoped, 수동 호출 시 `.dev/adr/`)
 
 포맷 상세는 reference 파일을 참조한다:
 - `.claude/skills/council/reference/opinion-template.md` — Phase 1 초기 의견 포맷
@@ -36,6 +36,29 @@ allowed-tools:
 ---
 
 ## Workflow
+
+### Pre-phase -1: Args 파싱 (run_id 및 ADR 저장 경로)
+
+```bash
+RUN_ID=$(echo "$ARGS" | grep -o 'run_id:[^ ]*' | cut -d: -f2)
+```
+
+**run_id가 있는 경우** (mini-harness 체인):
+```bash
+STATE_FILE=".dev/harness/runs/run-${RUN_ID}/state.json"
+ADR_DIR=$(jq -r '.paths.adr_dir' "$STATE_FILE")
+# ADR 파일명: $ADR_DIR/YYYY-MM-DD-{topic-slug}.md
+```
+
+**run_id가 없는 경우** (수동 호출):
+```bash
+ADR_DIR=".dev/adr"
+# ADR 파일명: $ADR_DIR/YYYY-MM-DD-{topic-slug}.md
+```
+
+이후 모든 단계에서 `$ADR_DIR`을 ADR 출력 경로로 사용한다.
+
+---
 
 ### Pre-phase 0: Interview 컨텍스트 로드 (해당 시)
 
@@ -182,10 +205,10 @@ TeamDelete()
 **3-3. 파일 저장**
 
 ```bash
-mkdir -p .dev/adr
+mkdir -p "$ADR_DIR"
 ```
 
-파일명: `.dev/adr/YYYY-MM-DD-{topic-slug}.md`
+파일명: `$ADR_DIR/YYYY-MM-DD-{topic-slug}.md`
 - `topic-slug`: 주제를 소문자 + 하이픈으로 변환 (예: `rest-vs-graphql-vs-trpc`)
 - 날짜: 실행 당일 날짜
 
@@ -199,7 +222,7 @@ Write 도구로 ADR 내용을 저장한다.
   - 렌즈: {lens 목록}
   - 패널: {패널리스트 목록}
   - Shift 발생: {yes/no, 발생 시 누가 어떤 방향으로}
-  - ADR: .dev/adr/{filename}.md
+  - ADR: {$ADR_DIR}/{filename}.md
 ```
 
 ---
@@ -210,5 +233,5 @@ Write 도구로 ADR 내용을 저장한다.
 - Phase 1 의견에는 렌즈별 분석이 빠짐없이 포함되어야 한다.
 - Phase 2 반박은 근거 없이 보낼 수 없다. rebuttal-template의 근거 섹션이 비어있으면 무효다.
 - shift 발생 여부와 내용은 반드시 토론 로그에 기록된다.
-- ADR 파일은 반드시 `.dev/adr/`에 저장된다. 다른 경로 사용 금지.
+- ADR 파일은 반드시 `$ADR_DIR`에 저장된다 (run_id 있으면 `.dev/harness/runs/run-{id}/adr/`, 없으면 `.dev/adr/`). 다른 경로 사용 금지.
 - **모든 작업 완료 후 TeamDelete 필수**: ADR 파일 저장 완료 → 모든 teammates에게 shutdown 신호 전송 → 모든 teammate 종료 확인 → 즉시 `TeamDelete()` 실행. TeamDelete 없이 council workflow를 종료할 수 없다.

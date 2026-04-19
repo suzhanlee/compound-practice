@@ -28,10 +28,9 @@ allowed-tools:
 
 ```bash
 RUN_ID=$(echo "$ARGS" | grep -o 'run_id:[^ ]*' | cut -d: -f2)
-STATE_FILE=".dev/harness/runs/run-${RUN_ID}.json"
+STATE_FILE=".dev/harness/runs/run-${RUN_ID}/state.json"
 GOAL=$(jq -r '.goal' "$STATE_FILE")
-REQ_DIR=$(dirname "$(jq -r '.paths.requirements' "$STATE_FILE")")
-INTERVIEW_PATH="$REQ_DIR/interview.json"
+INTERVIEW_PATH=$(jq -r '.paths.interview' "$STATE_FILE")
 ```
 
 State 파일에서 원래 goal을 읽어 문답의 출발점으로 사용한다.
@@ -199,4 +198,4 @@ Write 완료 후 출력:
 - Step 5의 AskUserQuestion 전에 반드시 refined_goal을 합성해야 한다. 미합성 상태로 확인 진입 금지.
 - Write는 반드시 Step 5의 AskUserQuestion에서 "이대로 진행" 선택 후에만 실행한다.
 - EnterPlanMode/ExitPlanMode는 이 스킬에서 사용하지 않는다. 확인은 AskUserQuestion으로만 처리한다.
-- run_id가 없으면(수동 호출) `INTERVIEW_PATH=".dev/requirements/interview.json"`을 기본값으로 사용한다.
+- run_id가 없으면(수동 호출) `INTERVIEW_PATH=".dev/harness/interview.json"`을 기본값으로 사용한다.
