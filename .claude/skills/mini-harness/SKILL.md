@@ -62,6 +62,20 @@ mini-compound (processing)
   → Stop hook: status=end → delete run-{run_id}.json + session pointer → approve exit
 ```
 
+## 하네스 파일 경로 전체 목록
+
+| 파일 | 생성 주체 | 삭제 주체 | 용도 |
+|---|---|---|---|
+| `.dev/harness/runs/run-{run_id}.json` | `mini-pre-tool-use.sh` | `mini-stop.sh` (mini-compound 완료 후) | run 오케스트레이션 상태 |
+| `.dev/harness/sessions/{session_id}.run_id` | `mini-pre-tool-use.sh` | `mini-stop.sh` (mini-compound 완료 후) | 세션 → run_id 포인터 |
+| `.dev/harness/session-recovery.log` | `mini-start-session.sh` | 수동 삭제 (자동 삭제 없음) | compact 후 복구 진단 로그 |
+| `.dev/requirements/run-{run_id}/interview.json` | `interview` 스킬 | 유지 | 소크라테스 문답 결과 |
+| `.dev/requirements/run-{run_id}/requirements.json` | `mini-specify` 스킬 | 유지 | 요구사항 목록 |
+| `.dev/task/run-{run_id}/spec.json` | `taskify` 스킬 | 유지 | 태스크 명세 |
+| `.dev/adr/YYYY-MM-DD-{slug}.md` | `council` 스킬 | 유지 | 아키텍처 결정 기록 |
+| `.mini-harness/session/learnings.json` | `mini-execute` 스킬 | `mini-compound` 스킬 | 세션 내 마찰 임시 기록 |
+| `.mini-harness/learnings/*.md` | `mini-compound` 스킬 | 유지 (영구 학습 라이브러리) | 검색 가능한 영구 rule |
+
 ## Rules
 
 - PreToolUse 훅이 Skill 호출 전 run state 파일을 갱신한다.
@@ -69,3 +83,4 @@ mini-compound (processing)
 - 모든 스킬이 정상 완료되면 run state 파일과 세션 포인터가 자동 삭제되어 세션 종료 가능.
 - run state 파일 존재 시에만 orchestration 모드; 없으면 기존 compound guard 로직 작동.
 - compact 후 session_id가 바뀌어도 `runs/` 스캔으로 단일 활성 run을 자동 복구한다.
+- `session-recovery.log`는 자동 삭제되지 않는다 — compact 복구 이슈 디버깅용 진단 파일이므로 필요 시 수동 삭제한다.

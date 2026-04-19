@@ -35,8 +35,10 @@ SPEC_PATH=$(jq -r '.paths.spec' ".dev/harness/runs/run-${RUN_ID}.json")
 
 **run_id가 없는 경우** (수동 호출 — backward compatibility):
 ```bash
-SPEC_PATH="$SPEC_PATH"
+SPEC_PATH=".dev/task/spec.json"
 ```
+
+이 fallback 경로는 `execute-stop.sh`의 레거시 고정 경로와 동일하다.
 
 이후 모든 단계에서 `$SPEC_PATH`를 사용한다.
 
